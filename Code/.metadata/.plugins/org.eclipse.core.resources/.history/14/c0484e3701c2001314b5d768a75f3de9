@@ -1,0 +1,476 @@
+
+import java.awt.Point;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+
+import javax.swing.Timer;
+
+
+public class AI implements ActionListener {
+	Timer timer=new Timer(0,this);
+	
+	//Stores all the paths for every checker
+	//Each entry corresponds to an array of paths for a checker
+	ArrayList<ArrayList<ArrayList<CheckerBoardSquare>>> pathsOfAllCheckers=new ArrayList<ArrayList<ArrayList<CheckerBoardSquare>>>();
+	
+	//Stores the values corresponding to the paths
+	//Each index of this array matches a path from pathsOfAllCheckers
+	ArrayList<ArrayList<Integer>> valuesOfAllPaths=new ArrayList<ArrayList<Integer>>();
+	
+	//Stores all the paths for one checker
+	ArrayList<ArrayList<CheckerBoardSquare>> paths=new ArrayList<ArrayList<CheckerBoardSquare>>();
+	Game thisGame;
+	
+	//Stores a single path
+	ArrayList<CheckerBoardSquare> path = new ArrayList<CheckerBoardSquare>();
+	
+	//Initial paths
+	ArrayList<CheckerBoardSquare> moves = new ArrayList<CheckerBoardSquare>();
+	
+	//For keeping track of the squares where paths branch from
+	ArrayList<CheckerBoardSquare> markedSquares = new ArrayList<CheckerBoardSquare>();
+	
+	//For keeping track of the paths we've already covered. 
+	ArrayList<CheckerBoardSquare> goneDownHere=new ArrayList<CheckerBoardSquare>();
+	
+	
+	
+	public AI(Game thisGame){
+		this.thisGame=thisGame;
+	}
+	
+	public void moveOnTurn(){
+		//AI evaluates the board and calculates all possible moves it can make. 
+		//The AI picks the most "valuable" or weighted move and moves there
+		paths.clear();
+		path.clear();
+		pathsOfAllCheckers.clear();
+		valuesOfAllPaths.clear();
+		goneDownHere.clear();
+		
+		thisGame.findValidCheckers();
+		ArrayList<Checker> validCheckers = thisGame.validCheckers;
+		
+		
+		
+		if (thisGame.isThereACaptureMove){
+			//finds all possible paths 
+			findAllCapturePaths(validCheckers);
+			//finds weights associated with those paths
+			findWeightOfAllCapturePaths(validCheckers);
+			
+			
+		}
+		else{
+			//finds all paths for noncapturing checkers
+			findAllNonCapturePaths(validCheckers);
+			//associates weights with those paths
+			findSafetyOfPaths(validCheckers);
+		}
+		
+		
+		
+		Point indexOfBestPath=findIndexOfMaxValue();
+		
+		move(indexOfBestPath, validCheckers);
+		
+		
+		thisGame.player1Turn=true;
+		
+		
+	}
+	private void move(Point indexOfBestPath,ArrayList<Checker> validCheckers) {
+		
+		int checkerIndex=(int) indexOfBestPath.getX();
+		int pathIndex=(int) indexOfBestPath.getY();
+		
+		Checker checkerToMove = validCheckers.get(checkerIndex);
+		ArrayList<CheckerBoardSquare> pathToMove=pathsOfAllCheckers.get(checkerIndex).get(pathIndex);
+		printPath(pathToMove,"The path we're moving along is","");
+		
+		thisGame.readClicked(checkerToMove.place.location);
+		
+		
+		
+		for (int i=0;i<pathToMove.size();i++){
+				thisGame.readClicked(pathToMove.get(i).location);
+				
+		}
+			//unhighlights the moving checker
+		
+		}
+		
+		
+		
+	
+
+	private Point findIndexOfMaxValue() {
+		//Returns a point of the form (Checker index, path index) that corresponds to the best move we can make of all checkers and all paths on the board
+		//The checker index will let us find the validChecker with the best path from the array of validCheckers. The path index lets us find the best path for that checker
+		int maxChecker=0;
+		int maxPath=0;
+		int maxValue=0;
+		int currentValue;
+		
+		for(int j=0;j<valuesOfAllPaths.size();j++){
+			for(int i=0;i<valuesOfAllPaths.get(j).size();i++){
+					currentValue=valuesOfAllPaths.get(j).get(i);
+					if(currentValue>=maxValue){
+						maxChecker=j;
+						maxPath=i;
+					}
+				}
+			}
+		
+		return new Point(maxChecker,maxPath);
+	}
+
+	private void findSafetyOfPaths(ArrayList<Checker> validCheckers) {
+		//finds whether a path is safe or not and updates the valuesOfAllPaths accordingly
+		ArrayList<Integer> values = new ArrayList<Integer>();
+		for (int i=0;i<pathsOfAllCheckers.size();i++){
+			for(int j=0;j<pathsOfAllCheckers.get(i).size();j++){
+				//k is the index of the last square in the path
+				int k=(pathsOfAllCheckers.get(i).get(j).size())-1;
+				//Anaylzes whether the checker moving along that path would be safe next turn
+				values.add(findSafetyOnSquare(pathsOfAllCheckers.get(i).get(j).get(k),validCheckers.get(i)));
+			}
+			valuesOfAllPaths.add((ArrayList<Integer>) values.clone());
+			values.clear();
+		}
+	}
+
+	private void findWeightOfAllCapturePaths(ArrayList<Checker> validCheckers) {
+		Checker cloneOfValid;
+		
+		for (int i=0;i<pathsOfAllCheckers.size();i++){
+			ArrayList<Integer> values = new ArrayList<Integer>();
+			for(int j=0;j<pathsOfAllCheckers.get(i).size();j++){
+				
+					cloneOfValid=cloneChecker(validCheckers.get(i));
+					values.add(findWeightOfCapturePath(pathsOfAllCheckers.get(i).get(j), cloneOfValid));
+				
+			}
+			valuesOfAllPaths.add((ArrayList<Integer>) values.clone());
+		}
+	}
+
+	
+	
+	private int findWeightOfCapturePath(ArrayList<CheckerBoardSquare> path,Checker toClone){
+		
+		CheckerBoardSquare source = path.get(0);
+		Checker clone=cloneChecker(toClone);
+		clone.place=source;
+		int valueOfMove=0;
+		CheckerBoardSquare possibleCaptureSquare;
+		
+		
+		ArrayList<Point> captureCheckerLocation;
+		
+		for (int i=1;i<path.size();i++){
+			
+			captureCheckerLocation = clone.standardMoves();
+			thisGame.validMoves(clone);
+			for (int m=0;m<thisGame.captureSquares.size();m++){
+				possibleCaptureSquare = thisGame.findSquare(captureCheckerLocation.get(m));
+				
+				if(thisGame.captureSquares.contains(possibleCaptureSquare)&&(path.contains(thisGame.moves.get(m)))){
+					if(thisGame.findChecker(possibleCaptureSquare).isKing){
+						//If the checker takes a king checker along this path, add 4
+						valueOfMove=valueOfMove+4;
+					}
+					else{
+						//If the checker takes a regular checker along this path, add 2
+						valueOfMove=valueOfMove+2;
+					}
+					
+				}
+				
+			}
+			//Now Move along the path. 
+			clone.place=path.get(i);
+		}
+		//returns the value of the capture moves PLUS the safety value
+		return valueOfMove+findSafetyOnSquare(path.get(path.size()-1),toClone);
+	}
+	
+	private int findSafetyOnSquare(CheckerBoardSquare finalSquare,Checker toMove){
+		//Evaluates whether a red checker is safe from capture on a square. Returns 1 if safe, returns 0 if not.
+		
+		CheckerBoardSquare squareAroundPath;
+		Checker clone= new Checker(finalSquare,true);
+		thisGame.printChecker(clone, "This is the checker", "");
+		thisGame.printSquare(finalSquare,"This is where we're moving to","Is it safe?");
+		clone.isKing=true;
+		
+		
+		
+		thisGame.removeChecker(toMove.place);
+		thisGame.putChecker(finalSquare, true);
+		
+		//Find all the places around the final square
+		ArrayList<Point> placesAroundFinalSquare = clone.standardMoves();
+		
+		Checker checker;
+		
+		//We will assume initially that the checker cannot be taken. 
+		int safetyOfPath=1;
+		
+		for (int i=0;i<placesAroundFinalSquare.size();i++){
+			
+			squareAroundPath = thisGame.findSquare(placesAroundFinalSquare.get(i));
+			
+			//A Checker that could possibly take a red checker if it moves to the final place in the path
+			checker = thisGame.findChecker(squareAroundPath);
+			thisGame.printChecker(checker, "Can this take?", "");
+			
+			if(checker!=null){
+				thisGame.validMoves(checker);
+				thisGame.printSquares(thisGame.captureSquares, "These are the capture squares", "");
+				if(thisGame.captureSquares.contains(finalSquare)){
+					//The red checker could be taken by a white checker if it moves to this final square. There is no safety here!
+					safetyOfPath=0;
+				}
+			}
+		}
+		thisGame.removeChecker(finalSquare);
+		thisGame.putChecker(toMove.place,true);
+		toMove.restoreImageInPlace();
+		return safetyOfPath;
+	}
+	
+
+	
+	
+	@SuppressWarnings("unchecked")
+	void findCapturePaths(Checker c){
+		
+		
+		//This method uses the following algorithm to find all capture paths for a checker
+		
+		//Save the current checker location
+		
+		
+		//If there are multiple checkers you can take from your location, mark the current location
+		//Move to a valid location from the current location. Add this new location to the "GoneDownHere" list
+		//repeat the above until there are no moves
+		//save the set as a move path. 
+		
+		//Go back to the last marked square, if there are any. 
+		//go down a different path until there are no more moves
+		//save the path
+		//go back to the marked square, repeat until there are no more paths from that marked square
+		
+		//go to the next marked square. Clear the goneDownHere List from the square that was marked previous
+		//repeat until there are no marked squares
+		
+		thisGame.validMoves(c);
+		moves=thisGame.moves;
+		path.clear();
+		markedSquares.add(c.place);
+		path.add(c.place);
+		
+		
+		
+		boolean goneDownHereDecreased=false;
+		
+		while(!(markedSquares.size()==0)){
+			
+			goneDownHereDecreased=false;
+			int storei=-1;
+			
+			
+			if(thisGame.isThereACaptureMove){
+				
+			System.out.println("There is a capturing move and the checker is here "+c.place.location);
+			
+					if (!markedSquares.contains(c.place)){
+						System.out.println("This square isn't marked yet");
+						
+						markedSquares.add(c.place);
+				
+					}
+					else{
+						System.out.println("The square was marked");
+					}
+				
+				for (int i=0; i<moves.size();i++){
+					
+					//if you've already covered a path, don't go down it again. Store the index of some path you haven't moved down yet
+					if(!goneDownHere.contains(moves.get(i))&&!markedSquares.contains(moves.get(i))){
+						storei=i;
+						
+					}
+					
+					
+				}
+				}
+			
+				if (storei!=-1){
+					//if there is a path that wasn't covered, add the location after you've moved.
+					//say that you've gone down this path
+					c.place=moves.get(storei);
+					
+					System.out.println("There is a path you haven't covered, so put it in goneDownHere and path and move c.place to that position.");
+					System.out.println("the checker is here "+c.place.location);
+					path.add(c.place);
+					printPath(path,"Path is like this now","");
+					goneDownHere.add(c.place);
+					printPath(goneDownHere,"GoneDownHere is like this now","after "+c.place.location+"was added");
+					System.out.println("");
+				}
+			
+			else{
+				//there are no new paths from the square you are on
+				//Return to the last marked square, checking if the square you are on already is marked
+				if(markedSquares.size()>=1){
+					CheckerBoardSquare lastMarkedSquare = markedSquares.get(markedSquares.size()-1);
+					if(c.place.equals(markedSquares.get(markedSquares.size()-1))){
+						
+						System.out.println("The checker is on a marked square, so switch marked squares.");
+						
+						markedSquares.remove(markedSquares.size()-1);
+						
+						printPath(markedSquares, "MarkedSquares after",lastMarkedSquare.location+" was removed");
+						thisGame.validMoves(c);
+						boolean isIn;
+						
+						for (int i=0; i<moves.size();i++){
+							isIn = goneDownHere.contains(moves.get(i));
+							
+							
+							if(isIn&!markedSquares.contains(moves.get(i))){
+								System.out.println("This was in the current move for a checker in "+c.place.location);
+								System.out.println("This move "+moves.get(i).location+" wasn't in the move set, so it was removed from goneDownHere");
+								
+								Point movesLocation=moves.get(i).location;
+								goneDownHere.remove(moves.get(i));
+								goneDownHereDecreased=true;
+								
+								printPath(goneDownHere, "GoneDownHere is like this", "After "+movesLocation+" was removed");
+								i--;
+							}
+							if(goneDownHereDecreased){
+								revertPath();
+							}
+						}
+						
+						
+						
+												
+
+			
+				}
+					
+					if(markedSquares.size()!=0){
+						c.place=markedSquares.get(markedSquares.size()-1);
+						
+						if (!goneDownHereDecreased){
+						paths.add((ArrayList<CheckerBoardSquare>) path.clone());
+						
+						printPath(path,"You added","that path this iteration");
+						revertPath();
+						printPath(path, "This path is reverted","");
+						}
+						
+					}
+					
+				}		
+			
+			}
+
+			thisGame.validMoves(c);
+			moves=thisGame.moves;
+		}
+		
+		moves.clear();
+		goneDownHere.clear();
+		path.clear();
+		
+		
+		
+	}
+	
+	private void findAllCapturePaths(ArrayList<Checker> checkers){
+		//finds all paths for all checkers and stores them in pathsOfAllCheckers
+		Checker clone;
+		for(int i=0;i<checkers.size();i++){
+			clone=checkers.get(i);
+			findCapturePaths(clone);
+			pathsOfAllCheckers.add(paths);
+		}
+	}
+	
+	private void findAllNonCapturePaths(ArrayList<Checker> checkers){
+		Checker clone;
+		for(int i=0;i<checkers.size();i++){
+			clone=checkers.get(i);
+			findNonCapturePaths(clone);
+			
+			
+			pathsOfAllCheckers.add((ArrayList<ArrayList<CheckerBoardSquare>>) paths.clone());
+			paths.clear();
+		}
+	}
+		
+private void findNonCapturePaths(Checker clone) {
+		thisGame.validMoves(clone);
+		path.clear();
+		//TODO
+		thisGame.printChecker(clone,"This is the checker","");
+		for(int i=0;i<thisGame.moves.size();i++){
+			path.add(clone.place);
+			path.add(thisGame.moves.get(i));
+			//TODO
+			printPath(path, "This is the noncapturing path","");
+			paths.add((ArrayList<CheckerBoardSquare>) path.clone());
+			path.clear();
+		}
+		
+	}
+
+
+
+
+	private Checker cloneChecker(Checker c) {
+		//returns a clone of a checker that can be used to virtually simulate a checker moving.
+		Checker clone= new Checker(c.place,c.isRed);
+		clone.isKing=c.isKing;
+		return clone;
+	}
+	
+	void printPath(ArrayList<CheckerBoardSquare> path,String before,String after){
+		System.out.println(before);
+		if (path.size()!=0){
+			
+			for (int i=0;i<path.size();i++){
+				System.out.println(path.get(i).location);
+			}
+		}System.out.println(after);
+	}
+	
+	void revertPath(){
+		//helper method for the findCapturePaths method
+		//removes values from path up to a marked square
+		if(path.size()!=0&&markedSquares.size()!=0){
+			for (int i=path.size()-1;i>=0;i--){
+				if (path.get(i).equals(markedSquares.get(markedSquares.size()-1))){
+					break;
+				}
+				else{
+					path.remove(i);
+				}
+			}
+		}
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+}
+

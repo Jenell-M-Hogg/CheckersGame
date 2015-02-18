@@ -1,0 +1,88 @@
+import java.awt.BorderLayout;
+import java.awt.Point;
+
+import javax.swing.ImageIcon;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+
+public class CheckerBoardSquare extends JPanel{
+	 public Point location;
+	 public boolean hasChecker=false;
+	 public JLabel checkerPosition=new JLabel();
+	 public JLabel glowSquarePosition=new JLabel();
+	
+	 
+	 public CheckerBoardSquare(Point m){
+		location=m;
+		
+
+	 }
+
+	public void placeCheckerOn(String checkerImage) {
+		
+		hasChecker=true;
+		this.removeAll();
+		
+		ImageIcon checkerPic=createImageIcon(checkerImage);
+		checkerPosition=new JLabel("",checkerPic,JLabel.CENTER);
+		this.setLayout(new BorderLayout());
+		this.invalidate();
+		this.add(checkerPosition,BorderLayout.CENTER);
+		
+		this.repaint();
+		this.validate();
+		
+	}
+	
+	public void takeCheckerOff(){
+		//visually removes a checker piece off of itself
+		hasChecker=false;
+		
+		this.remove(checkerPosition);
+		this.revalidate();
+		this.repaint();
+	}
+	
+	public void highlightSquare(){
+		//updates the square so that the user can tell it is selected
+		ImageIcon glowSquare= createImageIcon("BlackSquarewGlow.png");
+		glowSquarePosition=new JLabel("",glowSquare,JLabel.CENTER);
+		this.setLayout(new BorderLayout());
+		this.invalidate();
+		this.add(glowSquarePosition,BorderLayout.CENTER);
+		
+		this.repaint();
+		this.validate();
+	}
+	
+	public void unhighlightSquare(){
+		//updates the square so that the user can tell it is deselected
+		this.remove(glowSquarePosition);
+		
+		this.repaint();
+	}
+	
+	
+	
+	
+	
+	
+	private ImageIcon createImageIcon(String path) {
+		//helper method for creating image icons on the square
+		java.net.URL imgURL = getClass().getResource(path);
+		if (imgURL != null) {
+			return new ImageIcon(imgURL, "");
+		} else {
+			System.err.println("Couldn't find file: " + path);
+			return null;
+		}
+		
+	
+	}
+
+	
+	
+
+
+}

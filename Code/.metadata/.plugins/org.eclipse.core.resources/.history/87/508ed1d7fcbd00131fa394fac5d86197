@@ -1,0 +1,7 @@
+
+public class Graph {
+	ArrayList<Vertice>=new ArrayList<Vertice>();
+	ArrayList<Edges>=new ArrayList<Edges>;
+	ArrayList<Integer> Weights= new ArrayList<Integer>();
+
+}

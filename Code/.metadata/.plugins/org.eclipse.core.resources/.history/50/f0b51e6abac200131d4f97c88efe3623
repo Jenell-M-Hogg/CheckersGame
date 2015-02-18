@@ -1,0 +1,12 @@
+
+public class Path {
+	
+	boolean goesLeft;
+	boolean goesUp;
+	
+	public Path(boolean goesLeft, boolean goesUp){
+		this.goesLeft=goesLeft;
+		this.goesUp=goesUp;
+	}
+	
+}

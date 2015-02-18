@@ -1,0 +1,17 @@
+import java.io.IOException;
+
+
+public class CheckersGameProject {
+
+	public static void main(String[] args) throws ClassNotFoundException, IOException {
+		Listener n=new Listener();
+		AI ai=new AI(n.thisGame);
+		n.thisGame.continueGame();
+		n.thisGame.player1Turn=false;
+		
+		n.thisGame.findValidCheckers();
+		ai.findCapturePaths(n.thisGame.validCheckers.get(0));
+
+	}
+
+}

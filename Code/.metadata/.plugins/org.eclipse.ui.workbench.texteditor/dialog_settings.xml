@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
+		<item value="274" key="DIALOG_WIDTH"/>
+		<item value="444" key="DIALOG_Y_ORIGIN"/>
+		<item value="948" key="DIALOG_X_ORIGIN"/>
+		<item value="284" key="DIALOG_HEIGHT"/>
+		<item value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI" key="DIALOG_FONT_NAME"/>
+	</section>
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
+		<item value="true" key="wrap"/>
+		<item value="true" key="casesensitive"/>
+		<item value="true" key="isRegEx"/>
+		<item value="true" key="incremental"/>
+		<item value="false" key="wholeword"/>
+		<item value="moveOnTurn" key="selection"/>
+		<list key="findhistory">
+			<item value="moveOnTurn"/>
+			<item value="Point count"/>
+			<item value="print"/>
+			<item value="printChecker"/>
+			<item value="printPath"/>
+			<item value="colourCount"/>
+			<item value="move"/>
+			<item value="resetMenu"/>
+		</list>
+		<list key="replacehistory">
+			<item value="startLabel"/>
+			<item value="board"/>
+			<item value="mainWindow"/>
+			<item value="private"/>
+			<item value="far right"/>
+			<item value="place"/>
+		</list>
+	</section>
+</section>
